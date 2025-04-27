@@ -1,0 +1,30 @@
+---
+- name: "Install Nginx with Proper Dependencies"
+  hosts: all
+  become: yes
+
+  tasks:
+    # Update apt cache (critical for fresh Ubuntu instances)
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600  # Only updates if cache is older than 1 hour
+
+    # Install latest available Nginx version
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: latest  # Installs newest available version
+      notify: restart nginx
+
+    - name: Ensure Nginx is running
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted

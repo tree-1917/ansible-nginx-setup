@@ -1,0 +1,54 @@
+---
+- name: "Completely Remove Nginx"
+  hosts: all
+  become: yes
+
+  tasks:
+    # Stop Nginx service first
+    - name: "Stop Nginx service"
+      service:
+        name: nginx
+        state: stopped
+      ignore_errors: yes  # Continues if Nginx isn't installed
+
+    # Remove Nginx package and autoremove dependencies
+    - name: "Purge Nginx (remove configs too)"
+      apt:
+        name: nginx
+        state: absent
+        autoremove: yes
+        purge: yes  # Removes configuration files
+      when: ansible_os_family == 'Debian'  # For Ubuntu/Debian
+
+    # Alternative for RHEL/CentOS
+    - name: "Remove Nginx (RHEL/CentOS)"
+      yum:
+        name: nginx
+        state: absent
+      when: ansible_os_family == 'RedHat'
+
+    # Clean up remaining files
+    - name: "Remove residual Nginx files"
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/nginx
+        - /var/www/html
+        - /var/log/nginx
+        - /var/cache/nginx
+      ignore_errors: yes
+
+    # Remove Nginx user if exists
+    - name: "Remove Nginx user"
+      user:
+        name: nginx
+        state: absent
+        remove: yes
+      ignore_errors: yes
+
+  handlers:
+    - name: "Update package cache"
+      apt:
+        update_cache: yes
+      when: ansible_os_family == 'Debian'
